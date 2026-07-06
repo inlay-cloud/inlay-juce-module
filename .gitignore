@@ -1,0 +1,61 @@
+build
+Builds
+cmake-build-*/
+JUCE/
+JuceLibraryCode
+dist/
+./tmp
+.worktrees/
+compile_commands.json
+
+# Editors
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# macOS
+.DS_Store
+__MACOSX/
+
+# Prerequisites
+*.d
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Linker files
+*.ilk
+
+# Debugger Files
+*.pdb
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Fortran module files
+*.mod
+*.smod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+
+# debug information files
+*.dwo

@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Inlay documentation
+    url: https://inlay.cloud/docs/
+    about: Read Inlay integration documentation.
+  - name: Security reports
+    url: https://inlay.cloud
+    about: Report security-sensitive issues privately using SECURITY.md.

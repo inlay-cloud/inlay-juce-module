@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<JUCERPROJECT id="L7F4kP" name="UnitTestsRunner" projectType="consoleapp" bundleIdentifier="cloud.inlay.UnitTestsRunner"
+              defines="JUCE_UNIT_TESTS=1" companyName="Inlay" version="1.0.0"
+              useAppConfig="0" addUsingNamespaceToJuceHeader="1" jucerFormatVersion="1">
+  <MAINGROUP id="R5n6fD" name="UnitTestsRunner">
+    <GROUP id="{D8F05720-1F3A-44F4-9007-483C344E931B}" name="Source">
+      <FILE id="d98x7X" name="main.cpp" compile="1" resource="0" file="main.cpp"/>
+    </GROUP>
+  </MAINGROUP>
+  <MODULES>
+    <MODULE id="inlay_product_unlocking" showAllCode="1" useLocalCopy="0"
+            useGlobalPath="0"/>
+    <MODULE id="juce_core" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
+    <MODULE id="juce_cryptography" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
+    <MODULE id="juce_data_structures" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
+    <MODULE id="juce_events" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
+    <MODULE id="juce_graphics" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
+    <MODULE id="juce_gui_basics" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
+    <MODULE id="juce_product_unlocking" showAllCode="1" useLocalCopy="0"
+            useGlobalPath="0"/>
+  </MODULES>
+  <EXPORTFORMATS>
+    <XCODE_MAC targetFolder="Builds/MacOSX">
+      <CONFIGURATIONS>
+        <CONFIGURATION name="Debug" isDebug="1" optimisation="1" targetName="UnitTestsRunner"/>
+        <CONFIGURATION name="Release" isDebug="0" optimisation="3" targetName="UnitTestsRunner"/>
+      </CONFIGURATIONS>
+      <MODULEPATHS>
+        <MODULEPATH id="juce_core" path="../../JUCE/modules"/>
+        <MODULEPATH id="juce_cryptography" path="../../JUCE/modules"/>
+        <MODULEPATH id="juce_events" path="../../JUCE/modules"/>
+        <MODULEPATH id="juce_gui_basics" path="../../JUCE/modules"/>
+        <MODULEPATH id="juce_product_unlocking" path="../../JUCE/modules"/>
+        <MODULEPATH id="inlay_product_unlocking" path="../../modules"/>
+        <MODULEPATH id="juce_graphics" path="../../JUCE/modules"/>
+        <MODULEPATH id="juce_data_structures" path="../../JUCE/modules"/>
+      </MODULEPATHS>
+    </XCODE_MAC>
+  </EXPORTFORMATS>
+  <JUCEOPTIONS/>
+</JUCERPROJECT>

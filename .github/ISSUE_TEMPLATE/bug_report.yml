@@ -1,0 +1,53 @@
+name: Bug report
+description: Report a reproducible problem with the Inlay JUCE module.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a problem. Do not include private keys, customer tokens, or other sensitive data.
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What happened?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Provide the smallest reproduction you can.
+      placeholder: |
+        1. Configure ...
+        2. Build ...
+        3. Click ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, compiler, JUCE version, plugin format, host, and Inlay module version or commit.
+      placeholder: |
+        OS:
+        Compiler:
+        JUCE:
+        Plugin format:
+        Host:
+        Inlay commit:
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or screenshots
+      description: Add relevant logs, screenshots, or error messages.
+      render: text
