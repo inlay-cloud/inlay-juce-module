@@ -694,16 +694,78 @@ namespace inlay::internal {
                 expectEquals(unlocker.getCurrentUser(), juce::String("user@example.com"));
             }
 
-            beginTest("AccessToken: detects tokens older than one day");
+            beginTest("makeAccessTokenFromJSON: parses refresh interval claim");
+            {
+                const auto token = tokenValidator.makeAccessTokenFromJSON(
+                        R"({"p":"my-test-product-id","d":"my-device-id","e":9999999999,"i":1,"r":3})");
+                const auto neverRefreshToken = tokenValidator.makeAccessTokenFromJSON(
+                        R"({"p":"my-test-product-id","d":"my-device-id","e":9999999999,"i":1,"r":-1})");
+
+                expect(token.has_value());
+                expectEquals(token->refreshIntervalDays, juce::int64{3});
+                expect(neverRefreshToken.has_value());
+                expectEquals(neverRefreshToken->refreshIntervalDays, juce::int64{-1});
+            }
+
+            beginTest("makeAccessTokenFromJSON: defaults missing refresh interval to one day");
+            {
+                const auto token = tokenValidator.makeAccessTokenFromJSON(
+                        R"({"p":"my-test-product-id","d":"my-device-id","e":9999999999,"i":1})");
+
+                expect(token.has_value());
+                expectEquals(token->refreshIntervalDays, juce::int64{1});
+            }
+
+            beginTest("makeAccessTokenFromJSON: defaults invalid refresh intervals to one day");
+            {
+                const juce::StringArray invalidClaims{
+                        R"("r":-2)",
+                        R"("r":1.5)",
+                        R"("r":"2")",
+                        R"("r":null)",
+                        R"("r":true)"
+                };
+
+                for (const auto &invalidClaim : invalidClaims) {
+                    const auto token = tokenValidator.makeAccessTokenFromJSON(
+                            R"({"p":"my-test-product-id","d":"my-device-id","e":9999999999,"i":1,)"
+                            + invalidClaim + "}");
+
+                    expect(token.has_value());
+                    expectEquals(token->refreshIntervalDays, juce::int64{1});
+                }
+            }
+
+            beginTest("AccessToken: refreshes after configured interval");
             {
                 AccessToken recentToken;
-                recentToken.issuedAt = now - 60 * 1000;
+                recentToken.issuedAt = now - 47LL * 3600 * 1000;
+                recentToken.refreshIntervalDays = 2;
 
                 AccessToken oldToken;
-                oldToken.issuedAt = now - 25 * 3600 * 1000;
+                oldToken.issuedAt = now - 49LL * 3600 * 1000;
+                oldToken.refreshIntervalDays = 2;
 
-                expect(!recentToken.olderThanDay());
-                expect(oldToken.olderThanDay());
+                expect(!recentToken.shouldRefresh());
+                expect(oldToken.shouldRefresh());
+            }
+
+            beginTest("AccessToken: minus one never refreshes");
+            {
+                AccessToken token;
+                token.issuedAt = 1;
+                token.refreshIntervalDays = -1;
+
+                expect(!token.shouldRefresh());
+            }
+
+            beginTest("AccessToken: zero refreshes a token with positive age");
+            {
+                AccessToken token;
+                token.issuedAt = now - 1;
+                token.refreshIntervalDays = 0;
+
+                expect(token.shouldRefresh());
             }
 
             beginTest("validateAccessTokenClaims: invalid device id");

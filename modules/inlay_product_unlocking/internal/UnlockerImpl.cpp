@@ -6,7 +6,7 @@
 namespace inlay::internal {
     namespace {
         constexpr const char *defaultApiBaseURL = "https://api.inlay.cloud";
-        constexpr const char *moduleVersion = "JUCE-1.0.0";
+        constexpr const char *moduleVersion = "JUCE-1.0.1";
         constexpr const char *workerThreadName = "Inlay Unlocker Worker";
         const int instanceLockMs = 5000;
         const int activationEventPollMs = 2000;
@@ -605,7 +605,7 @@ namespace inlay::internal {
             if (validatedAccessToken.has_value()) {
                 return makeTaskResult(Unlocker::Status::unlocked,
                                       {},
-                                      _state.validatedAccessToken->olderThanDay()
+                                      _state.validatedAccessToken->shouldRefresh()
                                           ? WorkerTask::refreshAccessWithDelay
                                           : WorkerTask::none);
             }
@@ -793,7 +793,7 @@ namespace inlay::internal {
             return makeTaskResult(Unlocker::Status::unlocking, {}, WorkerTask::startup);
         }
 
-        if (!validatedAccessToken->olderThanDay()) {
+        if (!validatedAccessToken->shouldRefresh()) {
             // recently refreshed by another instance
             return makeTaskResult();
         }

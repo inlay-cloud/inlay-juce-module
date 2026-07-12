@@ -63,6 +63,22 @@ namespace inlay::internal {
 
             return propertyValue.getLargeIntValue();
         }
+
+        std::optional<juce::int64> readRefreshIntervalDays(const juce::DynamicObject &object) {
+            static const juce::Identifier propertyName{"r"};
+            if (!object.hasProperty(propertyName))
+                return std::nullopt;
+
+            const auto value = object.getProperty(propertyName);
+            if (!value.isInt() && !value.isInt64())
+                return std::nullopt;
+
+            const auto days = static_cast<juce::int64>(value);
+            if (days < -1)
+                return std::nullopt;
+
+            return days;
+        }
     } // namespace
 
     TokenValidator::TokenValidator(const juce::String &productIdToUse,
@@ -99,6 +115,7 @@ namespace inlay::internal {
         const auto issuedAtSeconds = readTokenInt64Property(*claimsObj, "i");
         const auto expiresAtSeconds = readTokenInt64Property(*claimsObj, "e");
         const auto userEmail = readTokenStringProperty(*claimsObj, "u");
+        const auto refreshIntervalDays = readRefreshIntervalDays(*claimsObj);
 
         if (!productIdSuff.has_value() || !deviceId.has_value()
             || !issuedAtSeconds.has_value() || !expiresAtSeconds.has_value())
@@ -110,6 +127,7 @@ namespace inlay::internal {
         token.userEmail = userEmail.value_or(juce::String{});
         token.issuedAt = *issuedAtSeconds * 1000;
         token.expiresAt = *expiresAtSeconds * 1000;
+        token.refreshIntervalDays = refreshIntervalDays.value_or(1);
         return token;
     }
 
