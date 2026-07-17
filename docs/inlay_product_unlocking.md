@@ -18,7 +18,13 @@ Internal API, token validation, network access, callback listener implementation
 
 ## Core Concept
 
-Inlay protects a product by requiring a valid local access token before protected functionality is available. Activation starts in the plugin, continues in the user's browser, and returns to the plugin through a local callback listener. After activation, the module stores local identity and access state under the user's application data directory for the configured Inlay product ID.
+Inlay protects a product by requiring a valid local access token before protected functionality is available. Activation starts in the plugin, continues in the user's browser, and returns to the plugin through a local callback listener. After activation, the module stores the identity token and signed access token under the user's application data directory for the configured Inlay product ID.
+
+On every startup, the module reads the saved access token and verifies it locally before unlocking. Verification checks the token's RSA-SHA256 signature with the configured public key and confirms that its product ID, device ID, issue time, expiration time, and user identity are valid. A valid unexpired token can therefore unlock the product without a network connection.
+
+The module contacts the Inlay server only when it needs to obtain or renew access: during browser activation, when startup finds no valid saved access token but a saved identity token is available, and when a valid token has reached its configured refresh interval. Refreshing happens in the background after the product has already been unlocked; a temporary network failure does not lock an otherwise valid token. If a token expires before it can be renewed, the product remains locked until the module can obtain and locally validate a new token.
+
+Token expiration and refresh interval are set in the access token returned by the server, so they can be adjusted per product without updating the plugin. Shorter expiration times and more frequent refreshes reduce the time that access can continue after a server-side change, but require the plugin to be online more often. Longer expiration times and less frequent refreshes provide a more offline-friendly experience, with the corresponding security tradeoff.
 
 At runtime, the unlocker has four states:
 
