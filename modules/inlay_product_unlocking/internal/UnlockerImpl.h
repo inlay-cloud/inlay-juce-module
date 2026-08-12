@@ -6,10 +6,15 @@
 
 #include "../Unlocker.h"
 #include "Api.h"
+#include "Browser.h"
 #include "TokenValidator.h"
 
 #include <juce_core/juce_core.h>
 #include <juce_events/juce_events.h>
+
+namespace inlay::emulator {
+    class Emulator;
+}
 
 namespace inlay::internal {
     class AuthCallbackListener;
@@ -50,6 +55,17 @@ namespace inlay::internal {
 
     private:
         friend class UnlockerTests;
+        friend class inlay::emulator::Emulator;
+
+        struct Snapshot {
+            Unlocker::Status status = Unlocker::Status::undefined;
+            bool locked = true;
+            juce::String error;
+            juce::String currentUser;
+            std::optional<Unlocker::AppUpdate> appUpdate;
+        };
+
+        Snapshot getSnapshot() const;
 
         UnlockerImpl(juce::ChangeBroadcaster &changeBroadcasterToUse,
                      const juce::String &productIdToUse,
@@ -59,7 +75,9 @@ namespace inlay::internal {
                      const juce::String &productIdToUse,
                      const juce::String &publicKeyToUse,
                      const juce::File &inlayDirToUse,
-                     const juce::String &apiURLToUse);
+                     const juce::String &apiURLToUse,
+                     std::unique_ptr<Browser> browserToUse,
+                     const juce::String &deviceIDToUse   = {});
 
         enum class WorkerTask {
             none,
@@ -161,6 +179,7 @@ namespace inlay::internal {
 
         std::unique_ptr<Api> _api;
         std::unique_ptr<AuthCallbackListener> _authCallbackListener;
+        std::unique_ptr<Browser> _browser;
         TokenValidator _tokenValidator;
 
         State _state;

@@ -1,16 +1,27 @@
 #include "UnlockerImpl.h"
 #include "AuthCallbackListener.h"
+#include "ModuleVersion.h"
 
 #include <utility>
 
 namespace inlay::internal {
     namespace {
         constexpr const char *defaultApiBaseURL = "https://api.inlay.cloud";
-        constexpr const char *moduleVersion = "JUCE-1.0.1";
         constexpr const char *workerThreadName = "Inlay Unlocker Worker";
         const int instanceLockMs = 5000;
         const int activationEventPollMs = 2000;
         const int activationEventFreshnessMs = 5000;
+
+        class DefaultBrowser final : public Browser {
+        public:
+            void openURL(juce::URL url) override {
+                url.launchInDefaultBrowser();
+            }
+        };
+
+        std::unique_ptr<Browser> makeDefaultBrowser() {
+            return std::make_unique<DefaultBrowser>();
+        }
 
         juce::String statusToString(Unlocker::Status status) {
             switch (status) {
@@ -219,7 +230,12 @@ namespace inlay::internal {
     UnlockerImpl::UnlockerImpl(juce::ChangeBroadcaster &changeBroadcasterToUse,
                                const juce::String &productIdToUse,
                                const juce::String &publicKeyToUse)
-        : UnlockerImpl(changeBroadcasterToUse, productIdToUse, publicKeyToUse, getInlayDirPath(productIdToUse), {}) {
+        : UnlockerImpl(changeBroadcasterToUse,
+                       productIdToUse,
+                       publicKeyToUse,
+                       getInlayDirPath(productIdToUse),
+                       {},
+                       makeDefaultBrowser()) {
     }
 
     UnlockerImpl::UnlockerImpl(juce::ChangeBroadcaster &changeBroadcasterToUse, Unlocker::Config config)
@@ -227,27 +243,36 @@ namespace inlay::internal {
                        config.productId,
                        config.publicKey,
                        getInlayDirPath(config.productId),
-                       config.apiURL.isNotEmpty() ? config.apiURL : defaultApiBaseURL) {
+                       config.apiURL.isNotEmpty() ? config.apiURL : defaultApiBaseURL,
+                       makeDefaultBrowser(),
+                       {}) {
     }
 
     UnlockerImpl::UnlockerImpl(juce::ChangeBroadcaster &changeBroadcasterToUse,
                                const juce::String &productIdToUse,
                                const juce::String &publicKeyToUse,
                                const juce::File &inlayDirToUse)
-        : UnlockerImpl(changeBroadcasterToUse, productIdToUse, publicKeyToUse, inlayDirToUse, defaultApiBaseURL) {
+        : UnlockerImpl(changeBroadcasterToUse,
+                       productIdToUse,
+                       publicKeyToUse,
+                       inlayDirToUse,
+                       defaultApiBaseURL,
+                       makeDefaultBrowser()) {
     }
 
     UnlockerImpl::UnlockerImpl(juce::ChangeBroadcaster &changeBroadcasterToUse,
                                const juce::String &productIdToUse,
                                const juce::String &publicKeyToUse,
                                const juce::File &inlayDirToUse,
-                               const juce::String &apiURLToUse)
+                               const juce::String &apiURLToUse,
+                               std::unique_ptr<Browser> browserToUse,
+                               const juce::String &deviceIDToUse)
         : juce::Thread(workerThreadName),
           _changeBroadcaster(changeBroadcasterToUse),
           _instanceID(juce::Uuid().toString()),
           _productId(productIdToUse),
           _publicKey(publicKeyToUse),
-          _deviceId(juce::SystemStats::getUniqueDeviceID()),
+          _deviceId(deviceIDToUse.isNotEmpty() ? deviceIDToUse : juce::SystemStats::getUniqueDeviceID()),
           _inlayDir(inlayDirToUse),
           _idTokenFile(_inlayDir.getChildFile("id-token")),
           _accessTokenFile(_inlayDir.getChildFile("access-token")),
@@ -258,6 +283,7 @@ namespace inlay::internal {
           _api(std::make_unique<Api>(apiURLToUse, productIdToUse, moduleVersion, _instanceID)),
           _authCallbackListener(
               std::make_unique<AuthCallbackListener>(getValidAuthCallbackRedirectUrlPrefix(apiURLToUse))),
+          _browser(std::move(browserToUse)),
           _tokenValidator(_productId, _publicKey, _deviceId) {
         juce::Logger::writeToLog("UnlockerImpl::UnlockerImpl()");
         juce::Logger::writeToLog("instanceID: " + _instanceID);
@@ -308,6 +334,18 @@ namespace inlay::internal {
     std::optional<Unlocker::AppUpdate> UnlockerImpl::getAppUpdate() const {
         const juce::ScopedLock lock(_stateCriticalSection);
         return getVisibleAppUpdate(_state.appUpdate, _state.skippedAppUpdateVersion);
+    }
+
+    UnlockerImpl::Snapshot UnlockerImpl::getSnapshot() const {
+        const juce::ScopedLock lock(_stateCriticalSection);
+        Snapshot snapshot;
+        snapshot.status = _state.status;
+        snapshot.locked = _isLocked.load(std::memory_order_relaxed);
+        snapshot.error = _state.errorMessage;
+        if (_state.validatedAccessToken.has_value())
+            snapshot.currentUser = _state.validatedAccessToken->userEmail;
+        snapshot.appUpdate = getVisibleAppUpdate(_state.appUpdate, _state.skippedAppUpdateVersion);
+        return snapshot;
     }
 
     UnlockerImpl::TaskResult UnlockerImpl::makeTaskResult() {
@@ -443,7 +481,7 @@ namespace inlay::internal {
     }
 
     void UnlockerImpl::openWebsite(const juce::String &url) const {
-        juce::URL(url).launchInDefaultBrowser();
+        _browser->openURL(juce::URL(url));
     }
 
     void UnlockerImpl::run() {
@@ -706,10 +744,7 @@ namespace inlay::internal {
         const auto callbackURL = _authCallbackListener->getEndpointURL();
         const auto continueURL = _api->makeContinueAuthURL(startAuthResp.okPayload->activationToken, callbackURL);
 
-        if (!continueURL.launchInDefaultBrowser()) {
-            return makeTaskResult(Unlocker::Status::activationRequired,
-                                  "Failed to start activation. Unable to launch browser");
-        }
+        _browser->openURL(continueURL);
 
         if (const auto ok = _authCallbackListener->waitForRequest(_state.breakCurrentTask); !ok) {
             return makeTaskResult();

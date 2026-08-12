@@ -15,6 +15,7 @@ local test harnesses used while developing the module.
 |-- examples/
 |   `-- ArpeggiatorTutorial/         # Demo plugin used for manual testing
 |-- tests/
+|   |-- Emulator/                    # Emulator sources and tests
 |   `-- UnitTestsRunner/             # JUCE unit test runner entry point
 |-- CMakeLists.txt                   # CMake build for examples and tests
 `-- Makefile                         # Projucer, demo build, and packaging helpers
@@ -32,8 +33,17 @@ and development iteration.
 
 ## Tests
 
-The root CMake project builds `InlayProductUnlockingTests`, a console test runner
-that links against the module with `JUCE_UNIT_TESTS=1`.
+The root CMake project builds separate console applications for emulator tests and
+the headless emulator:
+
+- `UnitTestsRunner` runs the module's unit tests.
+- `EmulatorTests` runs the Emulator protocol and event-writer tests.
+- `HeadlessEmulator` produces `inlay-juce-emulator`, which starts with
+  `--run-dir <absolute-path>`.
+
+Use `make emulator-tests` to build and run the emulator tests. Use
+`make emulator RUN_DIR=/absolute/path/to/run` to build and start the headless
+emulator. `make test` builds and executes both test applications through CTest.
 
 ## JUCE Dependency
 

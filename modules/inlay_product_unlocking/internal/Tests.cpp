@@ -113,14 +113,105 @@ namespace inlay::internal {
             runValidateAccessTokenTests();
             runValidateAccessTokenClaimsTests();
             runStatusModelTests();
+            runSnapshotTests();
             runStartupStateTests();
             runActivationRetryLogoutStateTests();
             runActivationEventTests();
+            runBrowserTests();
+            runDeviceIDTests();
             runAppUpdateTests();
             runDefaultUITests();
         }
 
     private:
+        class RecordingBrowser final : public Browser {
+        public:
+            void openURL(juce::URL url) override {
+                openedURLs.add(url.toString(true));
+            }
+
+            juce::StringArray openedURLs;
+        };
+
+        void runSnapshotTests() {
+            beginTest("Unlocker Snapshot: captures related fields together");
+            {
+                juce::ChangeBroadcaster changeBroadcaster;
+                UnlockerImpl unlocker(changeBroadcaster, "test-product-id", {});
+
+                {
+                    const juce::ScopedLock lock(unlocker._stateCriticalSection);
+                    unlocker.setStatus(Unlocker::Status::unlocked);
+                    unlocker._state.errorMessage = "snapshot-error";
+                    AccessToken token;
+                    token.userEmail = "snapshot@example.com";
+                    unlocker._state.validatedAccessToken = token;
+                    unlocker._state.appUpdate = makeTestAppUpdate("9.9.9", "https://example.com/update");
+                }
+
+                const auto snapshot = unlocker.getSnapshot();
+                expect(snapshot.status == Unlocker::Status::unlocked);
+                expect(!snapshot.locked);
+                expectEquals(snapshot.error, juce::String("snapshot-error"));
+                expectEquals(snapshot.currentUser, juce::String("snapshot@example.com"));
+                expect(snapshot.appUpdate.has_value());
+                if (snapshot.appUpdate.has_value()) {
+                    expectEquals(snapshot.appUpdate->version, juce::String("9.9.9"));
+                    expectEquals(snapshot.appUpdate->url, juce::String("https://example.com/update"));
+                }
+            }
+        }
+
+        void runBrowserTests() {
+            beginTest("Unlocker Browser: opens website URL through injected browser");
+            {
+                juce::ChangeBroadcaster changeBroadcaster;
+                auto browser = std::make_unique<RecordingBrowser>();
+                auto *recordingBrowser = browser.get();
+                UnlockerImpl unlocker(changeBroadcaster,
+                                      "test-product-id",
+                                      {},
+                                      juce::File::getSpecialLocation(juce::File::tempDirectory),
+                                      "https://api.example.com",
+                                      std::move(browser));
+
+                unlocker.openWebsite("https://example.com/release-notes");
+
+                expectEquals(recordingBrowser->openedURLs.size(), 1);
+                expectEquals(recordingBrowser->openedURLs[0], juce::String("https://example.com/release-notes"));
+            }
+        }
+
+        void runDeviceIDTests() {
+            beginTest("Unlocker device ID: uses the configured test override");
+            {
+                juce::ChangeBroadcaster changeBroadcaster;
+                UnlockerImpl unlocker(changeBroadcaster,
+                                      "test-product-id",
+                                      {},
+                                      juce::File::getSpecialLocation(juce::File::tempDirectory),
+                                      "https://api.example.com",
+                                      std::make_unique<RecordingBrowser>(),
+                                      "configured-device-id");
+
+                expectEquals(unlocker._deviceId, juce::String("configured-device-id"));
+            }
+
+            beginTest("Unlocker device ID: falls back to the system ID when override is empty");
+            {
+                juce::ChangeBroadcaster changeBroadcaster;
+                UnlockerImpl unlocker(changeBroadcaster,
+                                      "test-product-id",
+                                      {},
+                                      juce::File::getSpecialLocation(juce::File::tempDirectory),
+                                      "https://api.example.com",
+                                      std::make_unique<RecordingBrowser>(),
+                                      {});
+
+                expectEquals(unlocker._deviceId, juce::SystemStats::getUniqueDeviceID());
+            }
+        }
+
         void runActivationEventTests() {
             beginTest("Unlocker Activation Event: parses valid event");
             {
