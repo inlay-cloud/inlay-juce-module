@@ -70,5 +70,7 @@ target_compile_definitions(EmulatorTests PRIVATE
     INLAY_EMULATOR_PATH="$<TARGET_FILE:HeadlessEmulator>")
 add_dependencies(EmulatorTests HeadlessEmulator)
 
-add_custom_target(InlayProductUnlockingTests
-    DEPENDS EmulatorTests)
+add_custom_target(AllTests
+    DEPENDS
+        UnitTestsRunner
+        EmulatorTests)

@@ -20,7 +20,7 @@ jobs:
         run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 
       - name: Build test runner
-        run: cmake --build build --target InlayProductUnlockingTests --config Release
+        run: cmake --build build --target AllTests --config Release
 
       - name: Run tests
         run: ctest --test-dir build --build-config Release --output-on-failure
