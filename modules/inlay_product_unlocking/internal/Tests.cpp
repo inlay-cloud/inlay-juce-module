@@ -120,6 +120,7 @@ namespace inlay::internal {
             runBrowserTests();
             runDeviceIDTests();
             runAppUpdateTests();
+            runRequestPrivacyTests();
             runDefaultUITests();
         }
 
@@ -511,6 +512,47 @@ namespace inlay::internal {
                 expect(appUpdate.has_value());
                 expectEquals(appUpdate->version, juce::String("1.2.3"));
                 expectEquals(appUpdate->url, juce::String("https://example.com/app.zip"));
+            }
+        }
+
+        void runRequestPrivacyTests()
+        {
+            beginTest("Api complete auth: does not transmit system statistics or Inlay storage path");
+            {
+                Api::MetaData metaData;
+                metaData.moduleVersion = "module-version";
+                metaData.deviceId = "device-id";
+                metaData.os = "operating-system";
+                metaData.productId = "product-id";
+                metaData.productVersion = "product-version";
+                metaData.productName = "product-name";
+                metaData.isPlugin = true;
+                metaData.instanceId = "instance-id";
+
+                const auto body = Api::makeMetaDataVar(metaData);
+                const auto* bodyObject = body.getDynamicObject();
+
+                expect(bodyObject != nullptr);
+                if (bodyObject != nullptr)
+                {
+                    expectEquals(bodyObject->getProperty("productId").toString(), juce::String("product-id"));
+                    expect(!bodyObject->hasProperty("systemStats"));
+                    expect(!bodyObject->hasProperty("inlayDir"));
+                }
+            }
+
+            beginTest("Api metadata: transmits JUCE SDK version");
+            {
+                juce::ChangeBroadcaster changeBroadcaster;
+                UnlockerImpl unlocker(changeBroadcaster, "test-product-id", {});
+
+                const auto body = Api::makeMetaDataVar(unlocker.getMeta());
+                const auto* bodyObject = body.getDynamicObject();
+
+                expect(bodyObject != nullptr);
+                if (bodyObject != nullptr)
+                    expectEquals(bodyObject->getProperty("sdkVersion").toString(),
+                                 juce::SystemStats::getJUCEVersion());
             }
         }
 

@@ -151,36 +151,6 @@ namespace inlay::internal {
             return appUpdate;
         }
 
-        juce::String getSystemStatsJSON() {
-            juce::DynamicObject::Ptr stats = new juce::DynamicObject();
-
-            stats->setProperty("juceVersion", juce::SystemStats::getJUCEVersion());
-            stats->setProperty("operatingSystemName", juce::SystemStats::getOperatingSystemName());
-            stats->setProperty("deviceDescription", juce::SystemStats::getDeviceDescription());
-            stats->setProperty("uniqueDeviceID", juce::SystemStats::getUniqueDeviceID());
-            stats->setProperty("logonName", juce::SystemStats::getLogonName());
-            stats->setProperty("fullUserName", juce::SystemStats::getFullUserName());
-            stats->setProperty("computerName", juce::SystemStats::getComputerName());
-            stats->setProperty("userLanguage", juce::SystemStats::getUserLanguage());
-            stats->setProperty("userRegion", juce::SystemStats::getUserRegion());
-            stats->setProperty("displayLanguage", juce::SystemStats::getDisplayLanguage());
-            stats->setProperty("cpuVendor", juce::SystemStats::getCpuVendor());
-            stats->setProperty("memorySizeInMegabytes", juce::SystemStats::getMemorySizeInMegabytes());
-            stats->setProperty("numCpus", juce::SystemStats::getNumCpus());
-            stats->setProperty("isOperatingSystem64Bit", juce::SystemStats::isOperatingSystem64Bit());
-            stats->setProperty("hasMMX", juce::SystemStats::hasMMX());
-            stats->setProperty("hasSSE", juce::SystemStats::hasSSE());
-            stats->setProperty("hasSSE2", juce::SystemStats::hasSSE2());
-            stats->setProperty("hasSSE3", juce::SystemStats::hasSSE3());
-            stats->setProperty("has3DNow", juce::SystemStats::has3DNow());
-            stats->setProperty("hasAVX", juce::SystemStats::hasAVX());
-            stats->setProperty("hasAVX2", juce::SystemStats::hasAVX2());
-            stats->setProperty("hasFMA3", juce::SystemStats::hasFMA3());
-            stats->setProperty("hasFMA4", juce::SystemStats::hasFMA4());
-
-            return juce::JSON::toString(juce::var(stats.get()));
-        }
-
         Api::AccessRequest makeAccessRequest(juce::String idToken, Api::MetaData metaData) {
             Api::AccessRequest request;
             request.idToken = std::move(idToken);
@@ -403,12 +373,11 @@ namespace inlay::internal {
         metaData.moduleVersion = moduleVersion;
         metaData.deviceId = _deviceId;
         metaData.os = juce::SystemStats::getOperatingSystemName();
-        metaData.systemStats = getSystemStatsJSON();
         metaData.productId = _productId;
         metaData.productVersion = getProductVersionString();
         metaData.productName = getProductNameString();
         metaData.isPlugin = isPluginInstance();
-        metaData.inlayDir = _inlayDir.getFullPathName();
+        metaData.sdkVersion = juce::SystemStats::getJUCEVersion();
         metaData.instanceId = _instanceID;
 
         return metaData;

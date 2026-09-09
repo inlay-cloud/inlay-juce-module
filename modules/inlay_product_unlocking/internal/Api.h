@@ -34,12 +34,11 @@ public:
         juce::String moduleVersion;
         juce::String deviceId;
         juce::String os;
-        juce::String systemStats;
         juce::String productId;
         juce::String productVersion;
         juce::String productName;
         bool isPlugin = false;
-        juce::String inlayDir;
+        juce::String sdkVersion;
         juce::String instanceId;
     };
 
@@ -79,11 +78,6 @@ public:
         std::optional<AppUpdate> appUpdate;
     };
 
-    struct SendLogsRequest
-    {
-        juce::StringArray logs;
-    };
-
     Api (juce::String baseURLToUse,
          juce::String productIdToUse,
          juce::String moduleVersionToUse,
@@ -93,7 +87,8 @@ public:
     Result<StartAuthResponse> startAuth (const StartAuthRequest& request) const;
     Result<AuthResponse> completeAuth (const CompleteAuthRequest& request) const;
     Result<AuthResponse> requestAccess (const AccessRequest& request) const;
-    Result<std::monostate> sendLogs (const SendLogsRequest& request) const;
+
+    static juce::var makeMetaDataVar (const MetaData& metaData);
 
 private:
     friend class UnlockerTests;

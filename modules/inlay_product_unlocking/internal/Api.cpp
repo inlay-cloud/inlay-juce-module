@@ -21,22 +21,6 @@ juce::String makeApiURL (const juce::String& baseURL, const juce::String& path)
     return baseURL.trimEnd().trimCharactersAtEnd ("/") + "/" + path;
 }
 
-juce::var makeMetaDataVar (const Api::MetaData& metaData)
-{
-    auto object = juce::DynamicObject::Ptr (new juce::DynamicObject());
-    object->setProperty ("moduleVersion", metaData.moduleVersion);
-    object->setProperty ("deviceId", metaData.deviceId);
-    object->setProperty ("os", metaData.os);
-    object->setProperty ("systemStats", metaData.systemStats);
-    object->setProperty ("productId", metaData.productId);
-    object->setProperty ("productVersion", metaData.productVersion);
-    object->setProperty ("productName", metaData.productName);
-    object->setProperty ("isPlugin", metaData.isPlugin);
-    object->setProperty ("inlayDir", metaData.inlayDir);
-    object->setProperty ("instanceID", metaData.instanceId);
-    return juce::var (object.get());
-}
-
 juce::var makeStartAuthRequestVar (const Api::StartAuthRequest& request)
 {
     auto object = juce::DynamicObject::Ptr (new juce::DynamicObject());
@@ -50,7 +34,7 @@ juce::var makeCompleteAuthRequestVar (const Api::CompleteAuthRequest& request)
     auto object = juce::DynamicObject::Ptr (new juce::DynamicObject());
     object->setProperty ("activationToken", request.activationToken);
 
-    auto metaData = makeMetaDataVar (request.metaData);
+    auto metaData = Api::makeMetaDataVar (request.metaData);
     if (auto* metaDataObject = metaData.getDynamicObject(); metaDataObject != nullptr)
     {
         for (const auto& property : metaDataObject->getProperties())
@@ -65,25 +49,13 @@ juce::var makeAccessRequestVar (const Api::AccessRequest& request)
     auto object = juce::DynamicObject::Ptr (new juce::DynamicObject());
     object->setProperty ("idToken", request.idToken);
 
-    auto metaData = makeMetaDataVar (request.metaData);
+    auto metaData = Api::makeMetaDataVar (request.metaData);
     if (auto* metaDataObject = metaData.getDynamicObject(); metaDataObject != nullptr)
     {
         for (const auto& property : metaDataObject->getProperties())
             object->setProperty (property.name, property.value);
     }
 
-    return juce::var (object.get());
-}
-
-juce::var makeSendLogsRequestVar (const Api::SendLogsRequest& request)
-{
-    juce::Array<juce::var> logs;
-
-    for (const auto& logLine : request.logs)
-        logs.add (logLine);
-
-    auto object = juce::DynamicObject::Ptr (new juce::DynamicObject());
-    object->setProperty ("logs", juce::var (logs));
     return juce::var (object.get());
 }
 
@@ -149,6 +121,21 @@ Api::Result<OkPayload> postJSON (const juce::String& baseURL,
 }
 } // namespace
 
+juce::var Api::makeMetaDataVar (const MetaData& metaData)
+{
+    auto object = juce::DynamicObject::Ptr (new juce::DynamicObject());
+    object->setProperty ("moduleVersion", metaData.moduleVersion);
+    object->setProperty ("deviceId", metaData.deviceId);
+    object->setProperty ("os", metaData.os);
+    object->setProperty ("productId", metaData.productId);
+    object->setProperty ("productVersion", metaData.productVersion);
+    object->setProperty ("productName", metaData.productName);
+    object->setProperty ("isPlugin", metaData.isPlugin);
+    object->setProperty ("sdkVersion", metaData.sdkVersion);
+    object->setProperty ("instanceID", metaData.instanceId);
+    return juce::var (object.get());
+}
+
 Api::Api (juce::String baseURLToUse,
           juce::String productIdToUse,
           juce::String moduleVersionToUse,
@@ -198,20 +185,6 @@ Api::Result<Api::AuthResponse> Api::requestAccess (const AccessRequest& request)
                                    "app/auth/access",
                                    makeAccessRequestVar (request),
                                    Api::parseAuthResponse);
-}
-
-Api::Result<std::monostate> Api::sendLogs (const SendLogsRequest& request) const
-{
-    return postJSON<std::monostate> (_baseURL,
-                                     _productId,
-                                     _moduleVersion,
-                                     _instanceId,
-                                     "logs",
-                                     makeSendLogsRequestVar (request),
-                                     [] (const juce::var&) -> std::optional<std::monostate>
-                                     {
-                                         return std::monostate {};
-                                     });
 }
 
 std::optional<Api::AuthResponse> Api::parseAuthResponse (const juce::var& responseBody)
