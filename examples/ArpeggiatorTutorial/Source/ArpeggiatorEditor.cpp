@@ -4,10 +4,10 @@ ArpeggiatorEditor::ArpeggiatorEditor (Arpeggiator& processorToEdit)
     : juce::AudioProcessorEditor (processorToEdit),
       processor (processorToEdit),
       genericEditor (std::make_unique<juce::GenericAudioProcessorEditor> (processorToEdit)),
-      defaultUI (processorToEdit.getUnlocker())
+      unlockerUI (processorToEdit.getUnlocker())
 {
     addAndMakeVisible (*genericEditor);
-    addAndMakeVisible (defaultUI);
+    addAndMakeVisible (unlockerUI);
 
     setWantsKeyboardFocus (true);
     setSize (genericEditor->getWidth(), genericEditor->getHeight());
@@ -18,8 +18,8 @@ void ArpeggiatorEditor::resized()
 {
     auto bounds = getLocalBounds();
     genericEditor->setBounds (bounds);
-    defaultUI.setBounds (bounds);
-    defaultUI.toFront (false);
+    unlockerUI.setBounds (bounds);
+    unlockerUI.toFront (false);
 }
 
 bool ArpeggiatorEditor::keyPressed (const juce::KeyPress& key)
@@ -36,13 +36,13 @@ bool ArpeggiatorEditor::keyPressed (const juce::KeyPress& key)
 
 void ArpeggiatorEditor::updateUnlockState()
 {
-    const auto shouldShowDefaultUI = ! processor.isUnlocked();
+    const auto shouldUnlockerUI = ! processor.isUnlocked();
 
-    if (defaultUI.isVisible() != shouldShowDefaultUI)
-        defaultUI.setVisible (shouldShowDefaultUI);
+    if (unlockerUI.isVisible() != shouldUnlockerUI)
+        unlockerUI.setVisible (shouldUnlockerUI);
 
-    if (shouldShowDefaultUI)
-        defaultUI.toFront (false);
+    if (shouldUnlockerUI)
+        unlockerUI.toFront (false);
 }
 
 juce::AudioProcessorEditor* Arpeggiator::createEditor()

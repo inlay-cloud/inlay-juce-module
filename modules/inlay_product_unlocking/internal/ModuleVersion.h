@@ -2,5 +2,5 @@
 
 namespace inlay::internal
 {
-inline constexpr auto moduleVersion = "JUCE-1.0.2";
+inline constexpr auto moduleVersion = "JUCE-1.0.3";
 }
