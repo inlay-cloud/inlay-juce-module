@@ -1,0 +1,6 @@
+{
+  "name": "field-01-artwork",
+  "private": true,
+  "description": "Raster exporter for the FIELD / 01 vector asset handoff",
+  "dependencies": { "@resvg/resvg-js": "2.6.2" }
+}

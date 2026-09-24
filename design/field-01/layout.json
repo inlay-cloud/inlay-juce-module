@@ -1,0 +1,282 @@
+{
+  "name": "FIELD / 01",
+  "canvas": {
+    "width": 1080,
+    "height": 700
+  },
+  "palette": {
+    "ivory": "#e5e1cc",
+    "ink": "#343a31",
+    "muted": "#777b69",
+    "phosphor": "#c6dca6"
+  },
+  "layers": [
+    {
+      "asset": "panel.svg",
+      "bounds": [
+        0,
+        0,
+        1080,
+        700
+      ]
+    },
+    {
+      "asset": "enamel-texture.png",
+      "bounds": [
+        10,
+        10,
+        1060,
+        674
+      ],
+      "opacity": 0.16,
+      "optional": true
+    },
+    {
+      "asset": "panel-lettering.svg",
+      "bounds": [
+        0,
+        0,
+        1080,
+        700
+      ]
+    },
+    {
+      "asset": "scope-bezel.svg",
+      "bounds": [
+        54,
+        140,
+        650,
+        246
+      ]
+    },
+    {
+      "asset": "scope-glass-grid.svg",
+      "bounds": [
+        68,
+        154,
+        622,
+        217
+      ]
+    }
+  ],
+  "scope": {
+    "bounds": [
+      68,
+      154,
+      622,
+      217
+    ],
+    "traceArea": [
+      88,
+      190,
+      582,
+      147
+    ],
+    "readoutIsExample": true
+  },
+  "controls": [
+    {
+      "id": "waveform",
+      "kind": "choice",
+      "bounds": [
+        752,
+        185,
+        274,
+        57
+      ],
+      "states": [
+        "sine",
+        "triangle",
+        "pulse"
+      ],
+      "default": "sine",
+      "assetPattern": "wave-selector-{state}.svg"
+    },
+    {
+      "id": "range",
+      "kind": "toggle",
+      "bounds": [
+        844,
+        320,
+        90,
+        40
+      ],
+      "hitBounds": [
+        780,
+        309,
+        216,
+        62
+      ],
+      "states": [
+        "low",
+        "audio"
+      ],
+      "default": "audio",
+      "assetPattern": "range-{state}.svg"
+    },
+    {
+      "id": "frequency",
+      "kind": "rotary",
+      "bounds": [
+        87,
+        462,
+        160,
+        160
+      ],
+      "hitBounds": [
+        100,
+        477,
+        134,
+        134
+      ],
+      "pivot": [
+        80,
+        80
+      ],
+      "rotationDegrees": [
+        -135,
+        135
+      ],
+      "defaultNormalized": 0.46,
+      "previewValue": "220.0 Hz",
+      "bodyAsset": "knob-sage.svg",
+      "scaleAsset": "knob-scale.svg",
+      "rotatingAsset": "knob-index.svg",
+      "valueBaseline": [
+        167,
+        656
+      ]
+    },
+    {
+      "id": "drift",
+      "kind": "rotary",
+      "bounds": [
+        336,
+        462,
+        160,
+        160
+      ],
+      "hitBounds": [
+        349,
+        477,
+        134,
+        134
+      ],
+      "pivot": [
+        80,
+        80
+      ],
+      "rotationDegrees": [
+        -135,
+        135
+      ],
+      "defaultNormalized": 0.27,
+      "previewValue": "12 %",
+      "bodyAsset": "knob-charcoal.svg",
+      "scaleAsset": "knob-scale.svg",
+      "rotatingAsset": "knob-index.svg",
+      "valueBaseline": [
+        416,
+        656
+      ]
+    },
+    {
+      "id": "colour",
+      "kind": "rotary",
+      "bounds": [
+        584,
+        462,
+        160,
+        160
+      ],
+      "hitBounds": [
+        597,
+        477,
+        134,
+        134
+      ],
+      "pivot": [
+        80,
+        80
+      ],
+      "rotationDegrees": [
+        -135,
+        135
+      ],
+      "defaultNormalized": 0.6,
+      "previewValue": "58 %",
+      "bodyAsset": "knob-charcoal.svg",
+      "scaleAsset": "knob-scale.svg",
+      "rotatingAsset": "knob-index.svg",
+      "valueBaseline": [
+        664,
+        656
+      ]
+    },
+    {
+      "id": "level",
+      "kind": "rotary",
+      "bounds": [
+        833,
+        462,
+        160,
+        160
+      ],
+      "hitBounds": [
+        846,
+        477,
+        134,
+        134
+      ],
+      "pivot": [
+        80,
+        80
+      ],
+      "rotationDegrees": [
+        -135,
+        135
+      ],
+      "defaultNormalized": 0.7,
+      "previewValue": "\u221212 dB",
+      "bodyAsset": "knob-charcoal.svg",
+      "scaleAsset": "knob-scale.svg",
+      "rotatingAsset": "knob-index.svg",
+      "valueBaseline": [
+        913,
+        656
+      ]
+    }
+  ],
+  "fasteners": [
+    [
+      21,
+      22,
+      20,
+      20
+    ],
+    [
+      1039,
+      22,
+      20,
+      20
+    ],
+    [
+      21,
+      650,
+      20,
+      20
+    ],
+    [
+      1039,
+      650,
+      20,
+      20
+    ]
+  ],
+  "notes": [
+    "Suggested parameter semantics only; no DSP implemented.",
+    "Preview values are illustrative, not a calibrated parameter mapping.",
+    "Rotate index only; leave body lighting fixed.",
+    "All SVG typography is outlined. Dynamic text and waveform should be drawn in code."
+  ]
+}
