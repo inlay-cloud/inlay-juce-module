@@ -1,1 +1,2 @@
 add_subdirectory(ArpeggiatorTutorial)
+add_subdirectory(Field01Demo)

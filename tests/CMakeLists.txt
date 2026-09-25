@@ -74,3 +74,8 @@ add_custom_target(AllTests
     DEPENDS
         UnitTestsRunner
         EmulatorTests)
+
+add_test(NAME Field01DemoLayout
+    COMMAND ${CMAKE_COMMAND}
+        -DPROJECT_ROOT=${CMAKE_SOURCE_DIR}
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/Field01DemoLayout.cmake)

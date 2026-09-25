@@ -13,7 +13,8 @@ local test harnesses used while developing the module.
 |-- modules/
 |   `-- inlay_product_unlocking/     # Main Inlay licensing JUCE module
 |-- examples/
-|   `-- ArpeggiatorTutorial/         # Demo plugin used for manual testing
+|   |-- ArpeggiatorTutorial/         # Demo plugin used for manual testing
+|   `-- Field01Demo/                 # Product activation integration demo
 |-- tests/
 |   |-- Emulator/                    # Emulator sources and tests
 |   `-- UnitTestsRunner/             # JUCE unit test runner entry point
@@ -30,6 +31,10 @@ See: [`docs/inlay_product_unlocking.md`](docs/inlay_product_unlocking.md).
 `examples/ArpeggiatorTutorial` is a standalone JUCE demo plugin that depends on
 the module via a relative module path. Use it for manual activation-flow testing
 and development iteration.
+
+[`examples/Field01Demo`](examples/Field01Demo/README.md) is a compact product
+demo showing CMake integration, `inlay::Unlocker` initialisation, and the
+activation UI flow.
 
 ## Tests
 
