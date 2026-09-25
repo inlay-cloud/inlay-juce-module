@@ -241,7 +241,7 @@ public:
             if (payload != nullptr)
             {
                 check (payload->getProperty ("module").toString() == "juce", "ready module is incorrect");
-                check (payload->getProperty ("moduleVersion").toString() == "JUCE-1.0.2",
+                check (payload->getProperty ("moduleVersion").toString() == "JUCE-1.0.3",
                        "ready module version is incorrect");
                 check (static_cast<juce::int64> (payload->getProperty ("protocolVersion")) == 1,
                        "ready protocol version is incorrect");
