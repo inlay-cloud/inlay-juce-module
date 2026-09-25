@@ -59,5 +59,6 @@ __MACOSX/
 
 # debug information files
 *.dwo
+keys.csv
 
 /docs/superpowers/

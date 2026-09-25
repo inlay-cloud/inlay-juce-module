@@ -31,7 +31,8 @@ AppUpdateDialogAction getAppUpdateDialogActionForNativeMessageBoxResult (int res
     this component.
 */
 class DefaultUI : public juce::Component,
-                  private juce::ChangeListener
+                  private juce::ChangeListener,
+                  private juce::Timer
 {
 public:
     /** Creates a UI bound to the supplied Unlocker. */
@@ -46,7 +47,26 @@ public:
     /** Lays out the message label and action buttons. */
     void resized() override;
 
+    /** Refreshes the blurred image of the plugin UI beneath this component.
+
+        Call this after changing visible content underneath an already-visible
+        overlay. Showing, moving, and resizing the overlay refresh it
+        automatically.
+    */
+    void refreshBackdrop();
+
+    /** Refreshes the blurred backdrop after this component moves. */
+    void moved() override;
+
+    /** Refreshes the blurred backdrop after this component is attached to a parent. */
+    void parentHierarchyChanged() override;
+
+    /** Refreshes the blurred backdrop whenever the overlay is shown. */
+    void visibilityChanged() override;
+
 private:
+    void updateBackdrop (bool forceRefresh);
+    void timerCallback() override;
     void changeListenerCallback (juce::ChangeBroadcaster* source) override;
     void updateContent();
     void updateButtons (const juce::String& primaryText,
@@ -56,10 +76,17 @@ private:
     void notifyAppUpdate();
 
     Unlocker& _unlocker;
+    juce::DropShadowEffect _messageShadow;
+    juce::DropShadowEffect _errorShadow;
     juce::Label _messageLabel;
+    juce::Label _errorLabel;
     juce::TextButton _primaryButton;
     juce::TextButton _secondaryButton;
     juce::String _shownAppUpdateVersion;
+    juce::Image _blurredBackdrop;
+    juce::Component* _backdropParent = nullptr;
+    juce::Rectangle<int> _backdropBounds;
+    bool _isRefreshingBackdrop = false;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (DefaultUI)
 };

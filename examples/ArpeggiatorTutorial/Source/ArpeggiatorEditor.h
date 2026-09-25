@@ -15,7 +15,7 @@ private:
 
     Arpeggiator& processor;
     std::unique_ptr<juce::GenericAudioProcessorEditor> genericEditor;
-    inlay::DefaultUI defaultUI;
+    inlay::DefaultUI unlockerUI;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ArpeggiatorEditor)
 };

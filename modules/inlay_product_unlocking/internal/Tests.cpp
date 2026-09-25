@@ -319,12 +319,269 @@ namespace inlay::internal {
         }
 
         void runDefaultUITests() {
-            beginTest("DefaultUI: is opaque");
+            beginTest("DefaultUI: uses a translucent high-contrast overlay");
             {
                 Unlocker unlocker("test-product-id", {});
                 DefaultUI defaultUI(unlocker);
 
-                expect(defaultUI.isOpaque());
+                expect(!defaultUI.isOpaque());
+                auto primaryLabelCount = 0;
+                auto errorLabelCount = 0;
+
+                for (auto *child : defaultUI.getChildren()) {
+                    if (auto *label = dynamic_cast<juce::Label *>(child)) {
+                        const auto textColour = label->findColour(juce::Label::textColourId);
+
+                        if (label->getComponentID() == "inlay-primary-message") {
+                            ++primaryLabelCount;
+                            expect(textColour.getPerceivedBrightness() > 0.8f);
+                            expectWithinAbsoluteError(label->getFont().getHeight(), 14.0f, 0.01f);
+                            expect(label->getFont().isBold());
+                            expect(label->getComponentEffect() != nullptr);
+                            expectWithinAbsoluteError(label->getMinimumHorizontalScale(), 1.0f, 0.01f);
+                        } else if (label->getComponentID() == "inlay-error-message") {
+                            ++errorLabelCount;
+                            expect(textColour.getRed() > textColour.getGreen());
+                            expectWithinAbsoluteError(label->getFont().getHeight(), 12.0f, 0.01f);
+                            expect(label->getComponentEffect() != nullptr);
+                            expectWithinAbsoluteError(label->getMinimumHorizontalScale(), 1.0f, 0.01f);
+                        }
+                    }
+
+                    if (auto *button = dynamic_cast<juce::TextButton *>(child)) {
+                        const auto background = button->findColour(juce::TextButton::buttonColourId);
+                        const auto text = button->findColour(juce::TextButton::textColourOffId);
+                        expect(std::abs(background.getPerceivedBrightness() - text.getPerceivedBrightness()) > 0.5f);
+                    }
+                }
+
+                expectEquals(primaryLabelCount, 1);
+                expectEquals(errorLabelCount, 1);
+            }
+
+            beginTest("DefaultUI: darkens and blurs the component beneath it");
+            {
+                class SplitBackground final : public juce::Component {
+                public:
+                    void paint(juce::Graphics &g) override {
+                        const auto left = getLocalBounds().removeFromLeft(getWidth() / 2);
+                        g.setColour(juce::Colours::black);
+                        g.fillRect(left);
+                        g.setColour(juce::Colours::white);
+                        g.fillRect(getLocalBounds().withTrimmedLeft(getWidth() / 2));
+                    }
+                } background;
+
+                Unlocker unlocker("test-product-id", {});
+                DefaultUI defaultUI(unlocker);
+                background.setSize(100, 100);
+                defaultUI.setBounds(background.getLocalBounds());
+                background.addAndMakeVisible(defaultUI);
+
+                for (auto *child : defaultUI.getChildren())
+                    if (auto *button = dynamic_cast<juce::TextButton *>(child))
+                        button->setVisible(false);
+
+                defaultUI.resized();
+
+                const auto rendered = defaultUI.createComponentSnapshot(defaultUI.getLocalBounds());
+                const auto farLeft = rendered.getPixelAt(30, 80).getPerceivedBrightness();
+                const auto nearLeft = rendered.getPixelAt(48, 80).getPerceivedBrightness();
+                const auto nearRight = rendered.getPixelAt(51, 80).getPerceivedBrightness();
+                const auto farRight = rendered.getPixelAt(70, 80).getPerceivedBrightness();
+
+                expect(farLeft < nearLeft);
+                expect(nearLeft < nearRight);
+                expect(nearRight < farRight);
+                expect(farRight > 0.4f);
+                expect(farRight < 0.7f);
+            }
+
+            beginTest("DefaultUI: stays translucent and gives text a shadow over white UI");
+            {
+                class WhiteBackground final : public juce::Component {
+                public:
+                    void paint(juce::Graphics &g) override {
+                        g.fillAll(juce::Colours::white);
+                    }
+                } background;
+
+                Unlocker unlocker("test-product-id", {});
+                DefaultUI defaultUI(unlocker);
+                background.setSize(200, 120);
+                defaultUI.setBounds(background.getLocalBounds());
+                background.addAndMakeVisible(defaultUI);
+
+                for (auto *child : defaultUI.getChildren())
+                    if (auto *button = dynamic_cast<juce::TextButton *>(child)) {
+                        button->setVisible(false);
+                    } else if (auto *label = dynamic_cast<juce::Label *>(child)) {
+                        label->setText(label->getComponentID() == "inlay-primary-message"
+                                           ? "Activation required"
+                                           : juce::String(),
+                                       juce::dontSendNotification);
+                    }
+
+                defaultUI.resized();
+                const auto rendered = defaultUI.createComponentSnapshot(defaultUI.getLocalBounds());
+                const auto overlayBrightness = rendered.getPixelAt(10, 10).getPerceivedBrightness();
+
+                expect(overlayBrightness > 0.4f);
+                expect(overlayBrightness < 0.7f);
+                for (auto *child : defaultUI.getChildren()) {
+                    if (auto *label = dynamic_cast<juce::Label *>(child))
+                        expect(label->getComponentEffect() != nullptr);
+                }
+            }
+
+            beginTest("DefaultUI: keeps labels and stacked buttons inside compact bounds");
+            {
+                juce::Component background;
+                Unlocker unlocker("test-product-id", {});
+                DefaultUI defaultUI(unlocker);
+                background.setSize(160, 120);
+                defaultUI.setBounds(background.getLocalBounds());
+                background.addAndMakeVisible(defaultUI);
+
+                for (auto *child : defaultUI.getChildren()) {
+                    if (auto *label = dynamic_cast<juce::Label *>(child)) {
+                        label->setText(label->getComponentID() == "inlay-error-message"
+                                           ? "Unable to connect"
+                                           : "Activation required",
+                                       juce::dontSendNotification);
+                    }
+                }
+
+                defaultUI.resized();
+                for (auto *child : defaultUI.getChildren()) {
+                    expect(!child->getBounds().isEmpty());
+                    expect(defaultUI.getLocalBounds().contains(child->getBounds()));
+
+                    if (const auto *label = dynamic_cast<juce::Label *>(child))
+                        expect(child->getHeight() >= juce::roundToInt(label->getFont().getHeight()));
+
+                    if (dynamic_cast<juce::TextButton *>(child) != nullptr) {
+                        expect(child->getWidth() <= 96);
+                        expect(child->getHeight() <= 28);
+                    }
+                }
+            }
+
+            beginTest("DefaultUI: refreshes without visibility or alpha side effects");
+            {
+                class VisibilityListener final : public juce::ComponentListener {
+                public:
+                    void componentVisibilityChanged(juce::Component &) override {
+                        ++visibilityChanges;
+                    }
+
+                    int visibilityChanges = 0;
+                } listener;
+
+                juce::Component background;
+                Unlocker unlocker("test-product-id", {});
+                DefaultUI defaultUI(unlocker);
+                background.setSize(100, 100);
+                defaultUI.setBounds(background.getLocalBounds());
+                background.addAndMakeVisible(defaultUI);
+                defaultUI.setAlpha(0.8f);
+                defaultUI.addComponentListener(&listener);
+
+                defaultUI.refreshBackdrop();
+
+                expect(defaultUI.isVisible());
+                expectWithinAbsoluteError(defaultUI.getAlpha(), 0.8f, 0.001f);
+                expectEquals(listener.visibilityChanges, 0);
+            }
+
+            beginTest("DefaultUI: refreshes its backdrop after a same-size move");
+            {
+                class TwoToneBackground final : public juce::Component {
+                public:
+                    void paint(juce::Graphics &g) override {
+                        auto left = getLocalBounds().removeFromLeft(getWidth() / 2);
+                        g.setColour(juce::Colours::black);
+                        g.fillRect(left);
+                        g.setColour(juce::Colours::white);
+                        g.fillRect(getLocalBounds().withTrimmedLeft(getWidth() / 2));
+                    }
+                } background;
+
+                Unlocker unlocker("test-product-id", {});
+                DefaultUI defaultUI(unlocker);
+                background.setSize(200, 100);
+                defaultUI.setBounds(0, 0, 100, 100);
+                background.addAndMakeVisible(defaultUI);
+
+                for (auto *child : defaultUI.getChildren())
+                    if (auto *button = dynamic_cast<juce::TextButton *>(child))
+                        button->setVisible(false);
+
+                defaultUI.resized();
+
+                const auto darkRender = defaultUI.createComponentSnapshot(defaultUI.getLocalBounds());
+                const auto darkBrightness = darkRender.getPixelAt(50, 50).getPerceivedBrightness();
+
+                defaultUI.setTopLeftPosition(100, 0);
+                const auto lightRender = defaultUI.createComponentSnapshot(defaultUI.getLocalBounds());
+                const auto lightBrightness = lightRender.getPixelAt(50, 50).getPerceivedBrightness();
+
+                expect(darkBrightness < lightBrightness);
+                expect(lightBrightness < 0.7f);
+            }
+
+            beginTest("DefaultUI: refreshes its backdrop while visible");
+            {
+                class SolidBackground final : public juce::Component {
+                public:
+                    void paint(juce::Graphics &g) override {
+                        g.fillAll(colour);
+                    }
+
+                    juce::Colour colour = juce::Colours::black;
+                } background;
+
+                Unlocker unlocker("test-product-id", {});
+                DefaultUI defaultUI(unlocker);
+                background.setSize(100, 100);
+                defaultUI.setBounds(background.getLocalBounds());
+                background.addAndMakeVisible(defaultUI);
+
+                for (auto *child : defaultUI.getChildren())
+                    if (auto *button = dynamic_cast<juce::TextButton *>(child))
+                        button->setVisible(false);
+
+                defaultUI.resized();
+                const auto darkRender = defaultUI.createComponentSnapshot(defaultUI.getLocalBounds());
+                const auto darkBrightness = darkRender.getPixelAt(50, 80).getPerceivedBrightness();
+
+                background.colour = juce::Colours::white;
+                juce::Thread::sleep(110);
+                juce::Timer::callPendingTimersSynchronously();
+
+                const auto lightRender = defaultUI.createComponentSnapshot(defaultUI.getLocalBounds());
+                const auto lightBrightness = lightRender.getPixelAt(50, 80).getPerceivedBrightness();
+
+                expect(darkBrightness < lightBrightness);
+                expect(lightBrightness < 0.7f);
+            }
+
+            beginTest("DefaultUI: intercepts controls marked always-on-top");
+            {
+                juce::Component background;
+                juce::Component control;
+                Unlocker unlocker("test-product-id", {});
+                DefaultUI defaultUI(unlocker);
+                background.setSize(100, 100);
+                background.setVisible(true);
+                control.setBounds(0, 0, 100, 100);
+                defaultUI.setBounds(background.getLocalBounds());
+                control.setAlwaysOnTop(true);
+                background.addAndMakeVisible(control);
+                background.addAndMakeVisible(defaultUI);
+
+                const auto *hitComponent = background.getComponentAt(10, 10);
+                expect(hitComponent == &defaultUI || defaultUI.isParentOf(hitComponent));
             }
 
             beginTest("DefaultUI: maps update dialog buttons to the intended actions");

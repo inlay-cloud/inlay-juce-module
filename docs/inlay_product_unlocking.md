@@ -209,10 +209,10 @@ public:
     explicit MyEditor (MyProcessor& processorToEdit)
         : juce::AudioProcessorEditor (processorToEdit),
           _processor (processorToEdit),
-          _defaultUI (processorToEdit.getUnlocker())
+          _inlockerUI (processorToEdit.getUnlocker())
     {
         addAndMakeVisible (_mainContent);
-        addAndMakeVisible (_defaultUI);
+        addAndMakeVisible (_inlockerUI);
 
         setSize (600, 400);
     }
@@ -222,14 +222,14 @@ public:
         const auto bounds = getLocalBounds();
 
         _mainContent.setBounds (bounds);
-        _defaultUI.setBounds (bounds);
-        _defaultUI.toFront (false);
+        _inlockerUI.setBounds (bounds);
+        _inlockerUI.toFront (false);
     }
 
 private:
     MyProcessor& _processor;
     juce::Component _mainContent;
-    inlay::DefaultUI _defaultUI;
+    inlay::DefaultUI _inlockerUI;
 };
 ```
 
