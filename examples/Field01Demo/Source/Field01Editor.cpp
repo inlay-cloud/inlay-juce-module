@@ -3,9 +3,7 @@
 
 namespace
 {
-constexpr float designWidth = 1080.0f;
-constexpr float designHeight = 700.0f;
-constexpr float contentInset = 32.0f;
+constexpr float contentInset = 2.0f;
 
 std::unique_ptr<juce::Drawable> loadDrawable (const char* resourceName)
 {
@@ -14,6 +12,46 @@ std::unique_ptr<juce::Drawable> loadDrawable (const char* resourceName)
         return juce::Drawable::createFromImageData (data, static_cast<size_t> (bytes));
 
     return {};
+}
+
+// Resize the panel geometry while keeping the original border and corner widths.
+std::unique_ptr<juce::Drawable> loadPanelDrawable (float width, float height)
+{
+    int bytes = 0;
+    const auto* data = Field01Assets::getNamedResource ("field01runtimebase_svg", bytes);
+    if (data == nullptr || bytes <= 0)
+        return {};
+
+    auto svg = juce::parseXML (juce::String::fromUTF8 (data, bytes));
+    if (svg == nullptr)
+        return {};
+
+    svg->setAttribute ("width", width);
+    svg->setAttribute ("height", height);
+    svg->setAttribute ("viewBox", "0 0 " + juce::String (width) + " " + juce::String (height));
+    if (auto* frame = svg->getChildByAttribute ("id", "panel-frame"))
+    {
+        const auto resizeRect = [frame, width, height] (const char* id, float widthInset, float heightInset)
+        {
+            if (auto* rect = frame->getChildByAttribute ("id", id))
+            {
+                rect->setAttribute ("width", width - widthInset);
+                rect->setAttribute ("height", height - heightInset);
+            }
+        };
+        resizeRect ("panel-shell", 0.0f, 0.0f);
+        resizeRect ("panel-rim", 4.0f, 4.0f);
+        resizeRect ("panel-face", 16.0f, 20.0f);
+        if (auto* bottom = frame->getChildByAttribute ("id", "panel-bottom"))
+            bottom->setAttribute ("d", "M24 " + juce::String (height - 13.0f)
+                                      + " L" + juce::String (width - 24.0f) + " " + juce::String (height - 13.0f));
+    }
+    if (auto* texture = svg->getChildByAttribute ("id", "panel-texture"))
+    {
+        texture->setAttribute ("width", width - 20.0f);
+        texture->setAttribute ("height", height - 26.0f);
+    }
+    return juce::Drawable::createFromSVG (*svg);
 }
 
 } // namespace
@@ -47,7 +85,20 @@ void Field01Editor::DialLookAndFeel::drawRotarySlider (juce::Graphics& g, int x,
 Field01Editor::Field01Editor (Field01Processor& processorToEdit)
     : AudioProcessorEditor (processorToEdit),
       fieldProcessor (processorToEdit),
-      runtimeBase (loadDrawable ("field01runtimebase_svg")),
+      verticalLayout (juce::SystemStats::getEnvironmentVariable ("LAYOUT", "") == "vertical"),
+      designWidth (verticalLayout ? 648.0f : 1080.0f),
+      designHeight (verticalLayout ? 1152.0f : 700.0f),
+      runtimeBase (loadPanelDrawable (designWidth, designHeight)),
+      panelScrew (loadDrawable ("panelscrew_svg")),
+      panelTitle (loadDrawable ("paneltitle_svg")),
+      panelBrand (loadDrawable ("panelbrand_svg")),
+      scope (loadDrawable ("scope_svg")),
+      waveLabel (loadDrawable ("wavelabel_svg")),
+      rangeLabels (loadDrawable ("rangelabels_svg")),
+      oscillatorLabel (loadDrawable ("oscillatorlabel_svg")),
+      oscillatorDescription (loadDrawable ("oscillatordescription_svg")),
+      dialFaces { loadDrawable ("dialfrequency_svg"), loadDrawable ("dialdrift_svg"),
+                  loadDrawable ("dialcolour_svg"), loadDrawable ("diallevel_svg") },
       waveSelectors { loadDrawable ("waveselectorsine_svg"), loadDrawable ("waveselectortriangle_svg"), loadDrawable ("waveselectorpulse_svg") },
       rangeSwitches { loadDrawable ("rangelow_svg"), loadDrawable ("rangeaudio_svg") },
       dialLookAndFeel (std::make_unique<DialLookAndFeel>()),
@@ -80,8 +131,17 @@ Field01Editor::Field01Editor (Field01Processor& processorToEdit)
 
     addChildComponent (unlockerUI);
     setResizable (true, true);
-    setResizeLimits (648, 420, 1620, 1050);
-    setSize (1080, 700);
+    if (verticalLayout)
+    {
+        setResizeLimits (360, 640, 810, 1440);
+        getConstrainer()->setFixedAspectRatio (9.0 / 16.0);
+        setSize (437, 777);
+    }
+    else
+    {
+        setResizeLimits (648, 420, 1620, 1050);
+        setSize (1080, 700);
+    }
     startTimerHz (30);
 }
 
@@ -103,6 +163,30 @@ void Field01Editor::configureDial (juce::Slider& dial, const juce::String& param
     dial.setRotaryParameters (juce::degreesToRadians (225.0f), juce::degreesToRadians (495.0f), true);
     dial.setLookAndFeel (dialLookAndFeel.get());
     addAndMakeVisible (dial);
+}
+
+// Positions are in artwork coordinates and shared by painting and hit targets.
+juce::Point<float> Field01Editor::dialPosition (int index) const
+{
+    constexpr std::array<float, 4> horizontalX { 87.0f, 336.0f, 584.0f, 833.0f };
+    return verticalLayout ? juce::Point<float> { 110.0f + (index % 2) * 268.0f, 570.0f + (index / 2) * 264.0f }
+                          : juce::Point<float> { horizontalX[static_cast<size_t> (index)], 462.0f };
+}
+
+juce::Point<float> Field01Editor::wavePosition() const
+{
+    return verticalLayout ? juce::Point<float> { 54.0f, 403.0f } : juce::Point<float> { 752.0f, 185.0f };
+}
+
+juce::Point<float> Field01Editor::rangePosition() const
+{
+    return verticalLayout ? juce::Point<float> { 320.0f, 369.0f } : juce::Point<float> { 752.0f, 272.0f };
+}
+
+juce::Rectangle<float> Field01Editor::scopeBounds() const
+{
+    return verticalLayout ? juce::Rectangle<float> { 54.0f, 140.0f, 540.0f, 246.0f * 540.0f / 650.0f }
+                          : juce::Rectangle<float> { 54.0f, 140.0f, 650.0f, 246.0f };
 }
 
 float Field01Editor::scale() const
@@ -136,14 +220,52 @@ void Field01Editor::paint (juce::Graphics& g)
     const auto currentScale = scale();
     const auto offset = origin();
     juce::Graphics::ScopedSaveState state (g);
-    g.addTransform (juce::AffineTransform::translation (offset.x, offset.y).scaled (currentScale));
+    g.addTransform (juce::AffineTransform::scale (currentScale).translated (offset.x, offset.y));
 
     drawDrawable (g, runtimeBase.get(), { 0.0f, 0.0f, designWidth, designHeight });
 
+    drawDrawable (g, panelTitle.get(), { 52.0f, 38.0f, 214.0f, 52.0f });
+    drawDrawable (g, panelBrand.get(), { designWidth - 176.0f, 44.0f, 122.0f, 38.0f });
+    for (const auto x : { 21.0f, designWidth - 41.0f })
+        for (const auto y : { 22.0f, designHeight - 50.0f })
+            drawDrawable (g, panelScrew.get(), { x, y, 20.0f, 28.0f });
+
+    const auto wave = wavePosition();
+    const auto range = rangePosition();
+    const auto controlsTop = verticalLayout ? 517.0f : 415.0f;
+    g.setColour (juce::Colour (0xffa6aa97));
+    g.drawLine (54.0f, 111.0f, designWidth - 54.0f, 111.0f);
+    g.drawLine (54.0f, controlsTop, designWidth - 54.0f, controlsTop);
+    if (! verticalLayout)
+    {
+        g.setColour (juce::Colour (0xffb7baa6));
+        g.drawLine (752.0f, 258.0f, 1026.0f, 258.0f);
+    }
+    g.setColour (juce::Colour (0xffc3c5b1));
+    if (verticalLayout)
+    {
+        g.drawLine (324.0f, 596.0f, 324.0f, 713.0f);
+        g.drawLine (324.0f, 860.0f, 324.0f, 977.0f);
+    }
+    else
+        for (const auto x : { 291.0f, 540.0f, 788.0f })
+            g.drawLine (x, 488.0f, x, 605.0f);
+
+    drawDrawable (g, oscillatorLabel.get(), { 54.0f, controlsTop + 14.0f, 76.0f, 18.0f });
+    drawDrawable (g, oscillatorDescription.get(), { designWidth - 202.0f, controlsTop + 8.0f, 148.0f, 18.0f });
+    drawDrawable (g, scope.get(), scopeBounds());
+    drawDrawable (g, waveLabel.get(), { wave.x, wave.y - 34.0f, 122.0f, 18.0f });
+    drawDrawable (g, rangeLabels.get(), { range.x, range.y, 274.0f, 88.0f });
+    for (int index = 0; index < 4; ++index)
+    {
+        const auto position = dialPosition (index);
+        drawDrawable (g, dialFaces[static_cast<size_t> (index)].get(), { position.x, position.y, 160.0f, 174.0f });
+    }
+
     const auto waveform = juce::roundToInt (fieldProcessor.getParameters().getRawParameterValue ("waveform")->load());
-    drawDrawable (g, waveSelectors[static_cast<size_t> (juce::jlimit (0, 2, waveform))].get(), { 752.0f, 185.0f, 274.0f, 57.0f });
+    drawDrawable (g, waveSelectors[static_cast<size_t> (juce::jlimit (0, 2, waveform))].get(), { wave.x, wave.y, 274.0f, 57.0f });
     const auto audioRange = fieldProcessor.getParameters().getRawParameterValue ("range")->load() >= 0.5f;
-    drawDrawable (g, rangeSwitches[static_cast<size_t> (audioRange ? 1 : 0)].get(), { 844.0f, 320.0f, 90.0f, 40.0f });
+    drawDrawable (g, rangeSwitches[static_cast<size_t> (audioRange ? 1 : 0)].get(), { range.x + 92.0f, range.y + 48.0f, 90.0f, 40.0f });
 
     const auto frequencyValue = fieldProcessor.getParameters().getRawParameterValue ("frequency")->load();
     const auto driftValue = fieldProcessor.getParameters().getRawParameterValue ("drift")->load();
@@ -156,10 +278,23 @@ void Field01Editor::paint (juce::Graphics& g)
 
     g.setFont (juce::Font (juce::FontOptions ("Andale Mono", 9.5f, juce::Font::plain)));
     g.setColour (juce::Colour (0xff777b69));
-    g.drawFittedText (frequencyText, 100, 639, 134, 16, juce::Justification::centred, 1);
-    g.drawFittedText (dialValue ("drift", " %"), 349, 639, 134, 16, juce::Justification::centred, 1);
-    g.drawFittedText (dialValue ("colour", " %"), 597, 639, 134, 16, juce::Justification::centred, 1);
-    g.drawFittedText (juce::String (fieldProcessor.getParameters().getRawParameterValue ("level")->load(), 1) + " dB", 846, 639, 134, 16, juce::Justification::centred, 1);
+    const std::array<juce::String, 4> values {
+        frequencyText, dialValue ("drift", " %"), dialValue ("colour", " %"),
+        juce::String (fieldProcessor.getParameters().getRawParameterValue ("level")->load(), 1) + " dB"
+    };
+    for (int index = 0; index < 4; ++index)
+    {
+        const auto position = dialPosition (index);
+        g.drawFittedText (values[static_cast<size_t> (index)], juce::roundToInt (position.x + 13.0f),
+                          juce::roundToInt (position.y + 177.0f), 134, 16, juce::Justification::centred, 1);
+    }
+
+    // Keep the live trace and readouts in the same coordinate system as the scope SVG.
+    const auto scopeArea = scopeBounds();
+    const auto scopeScale = scopeArea.getWidth() / 650.0f;
+    juce::Graphics::ScopedSaveState scopeState (g);
+    g.addTransform (juce::AffineTransform::translation (-54.0f, -140.0f)
+                        .scaled (scopeScale).translated (scopeArea.getX(), scopeArea.getY()));
 
     const auto frequencyPosition = juce::jlimit (0.0f, 1.0f, (frequencyValue - 20.0f) / 1980.0f);
     const auto scopeCycles = (audioRange ? 1.2f : 0.45f) + frequencyPosition * (audioRange ? 2.0f : 0.75f);
@@ -201,13 +336,18 @@ void Field01Editor::paint (juce::Graphics& g)
 
 void Field01Editor::resized()
 {
-    frequency.setBounds (scaledBounds (87.0f, 462.0f, 160.0f, 160.0f));
-    drift.setBounds (scaledBounds (336.0f, 462.0f, 160.0f, 160.0f));
-    colour.setBounds (scaledBounds (584.0f, 462.0f, 160.0f, 160.0f));
-    level.setBounds (scaledBounds (833.0f, 462.0f, 160.0f, 160.0f));
+    const std::array<juce::Slider*, 4> dials { &frequency, &drift, &colour, &level };
+    for (int index = 0; index < 4; ++index)
+    {
+        const auto position = dialPosition (index);
+        dials[static_cast<size_t> (index)]->setBounds (scaledBounds (position.x, position.y, 160.0f, 160.0f));
+    }
+    const auto wave = wavePosition();
     for (int index = 0; index < static_cast<int> (waveformButtons.size()); ++index)
-        waveformButtons[static_cast<size_t> (index)].setBounds (scaledBounds (752.0f + index * 91.0f, 185.0f, 90.0f, 57.0f));
-    rangeButton.setBounds (scaledBounds (780.0f, 309.0f, 216.0f, 62.0f));
+        waveformButtons[static_cast<size_t> (index)].setBounds (scaledBounds (wave.x + index * 91.0f, wave.y, 90.0f, 57.0f));
+    const auto range = rangePosition();
+    rangeButton.setBounds (scaledBounds (range.x + 28.0f, range.y + 37.0f,
+                                         216.0f, 62.0f));
     unlockerUI.setBounds (getLocalBounds());
     unlockerUI.toFront (false);
 }

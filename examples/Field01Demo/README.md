@@ -73,3 +73,19 @@ the plug-in.
 For a production plug-in, keep the same ownership model: create one unlocker
 in the processor, start it during processor setup, pass it to the editor, and
 gate the protected product behavior on its unlocked state.
+
+## Editor layout
+
+The editor opens horizontally by default. Set `LAYOUT=vertical` in the process
+that launches the standalone app or plug-in host to use the portrait layout.
+The setting is read when the editor is created; other values retain horizontal mode.
+
+Portrait mode opens at 437 × 777 and keeps its 9:16 editor aspect ratio when
+resized. Frequency and Drift share the first knob row; Colour and Level share
+the second. Both layouts use the same SVG artwork and parameter bindings.
+
+For example, from the repository root after building the Release standalone app:
+
+```sh
+LAYOUT=vertical "build/examples/Field01Demo/Field01Demo_artefacts/Release/Standalone/Field 01.app/Contents/MacOS/Field 01"
+```

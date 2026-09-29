@@ -5,6 +5,18 @@ juce_add_binary_data(Field01Assets
     HEADER_NAME Field01Assets.h
     SOURCES
         "${FIELD01_ASSET_DIR}/field-01-runtime-base.svg"
+        "${FIELD01_ASSET_DIR}/panel-screw.svg"
+        "${FIELD01_ASSET_DIR}/panel-title.svg"
+        "${FIELD01_ASSET_DIR}/panel-brand.svg"
+        "${FIELD01_ASSET_DIR}/scope.svg"
+        "${FIELD01_ASSET_DIR}/wave-label.svg"
+        "${FIELD01_ASSET_DIR}/range-labels.svg"
+        "${FIELD01_ASSET_DIR}/oscillator-label.svg"
+        "${FIELD01_ASSET_DIR}/oscillator-description.svg"
+        "${FIELD01_ASSET_DIR}/dial-frequency.svg"
+        "${FIELD01_ASSET_DIR}/dial-drift.svg"
+        "${FIELD01_ASSET_DIR}/dial-colour.svg"
+        "${FIELD01_ASSET_DIR}/dial-level.svg"
         "${FIELD01_ASSET_DIR}/range-audio.svg"
         "${FIELD01_ASSET_DIR}/range-low.svg"
         "${FIELD01_ASSET_DIR}/wave-selector-pulse.svg"

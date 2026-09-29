@@ -36,11 +36,21 @@ private:
     void drawDrawable (juce::Graphics&, const juce::Drawable*, juce::Rectangle<float>) const;
     void configureDial (juce::Slider&, const juce::String&, double interval);
     juce::Rectangle<int> scaledBounds (float x, float y, float width, float height) const;
+    juce::Point<float> dialPosition (int index) const;
+    juce::Point<float> wavePosition() const;
+    juce::Point<float> rangePosition() const;
+    juce::Rectangle<float> scopeBounds() const;
     float scale() const;
     juce::Point<float> origin() const;
 
     Field01Processor& fieldProcessor;
+    const bool verticalLayout;
+    const float designWidth;
+    const float designHeight;
     std::unique_ptr<juce::Drawable> runtimeBase;
+    std::unique_ptr<juce::Drawable> panelScrew, panelTitle, panelBrand, scope;
+    std::unique_ptr<juce::Drawable> waveLabel, rangeLabels, oscillatorLabel, oscillatorDescription;
+    std::array<std::unique_ptr<juce::Drawable>, 4> dialFaces;
     std::array<std::unique_ptr<juce::Drawable>, 3> waveSelectors;
     std::array<std::unique_ptr<juce::Drawable>, 2> rangeSwitches;
     std::unique_ptr<DialLookAndFeel> dialLookAndFeel;
